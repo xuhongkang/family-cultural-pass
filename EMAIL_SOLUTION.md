@@ -1,101 +1,44 @@
 # Email Delivery Solutions: Research and Comparison
 
-## Options Under Consideration
+Required:
+1. I need to be able to register a user as a subscriber. I also need to be able to create and manage user groups, and add subscribers to user groups. There should be data stored alongside users and user groups: email address, pass id, first and last name, preferred language.
+2. I need to be able to send out emails to groups of users at the same time. I should be able to customize the email based on properties of each user. For example. If I would like to attach their name and id within the email I should be able to do it for the batch without writing every email word by word.
+3. I need to be able to update subscriber information within firestore based on the real time subscribe and unsubscribe events of users. This should be done via webhooks. An http trigger cloud function will be created in firebase and the email service should send a request to this endpoint once a subscriber event is performed.
+4. I need to be able to handle unsubscribing within the email service. Ideally there should be a generic link in each email to unsubscribe within the email service. There should be a UI screen that confirms unsubscribing.
 
-### 1. Firestore Email Trigger Extension
-- **Description:**
-  - Simplifies email workflows by integrating Firestore storage and email sending.
-  - Designates an "email collection" in Firestore where adding a document triggers email delivery automatically.
-  - Combines data storage and email sending into a single workflow.
+Optional:
+1. I should be able to manually trigger unsubscribing of users. I may do so from firebase cloud functions if data analytics decides certain users are fraudulent.
+2. I should be able to receive insights on specific user email events, such as the time of opening an email, number of bounces, etc. Ideally this should be done real time via web hooks so I could store the information within firestore. Data analytics would like this data as a measurement of engagement.
+3. I should be able to change mailing lists, email templates and the logic of customizing emails after they have been created. This will ensure the flexibility of the tool and service.
 
-- **Strengths:**
-  - Native integration with Firebase.
-  - Easy to configure for real-time triggering using Firestore writes.
-  - Offloads SMTP setup and basic operations.
+## Upaknee
 
-- **Weaknesses:**
-  - Limited flexibility for batch operations (best suited for real-time email sending).
-  - Minimal support for analytics and subscription/unsubscribe workflows.
-  - Requires an SMTP server configuration, adding potential maintenance overhead.
+| **Feature**                              | **Supported** | **Endpoint(s)**                                       | **Customization**                                    |
+|------------------------------------------|---------------|------------------------------------------------------|-----------------------------------------------------|
+| **Required**                             |               |                                                      |                                                     |
+| Register Subscribers                     | Yes           | `POST /subscribers`, `POST /lists/{list_id}/subscribers` | Custom fields via XML payload.                     |
+| Manage User Groups                       | Yes           | `POST /lists`, `POST /lists/{list_id}/subscribers`   | Can manage groups as lists.                        |
+| Send Customized Batch Emails             | Yes           | `POST /triggers/:trigger-name/mailings`             | Supports merge tags for dynamic content.           |
+| Real-Time Subscriber Updates             | Yes           | `POST /webhooks`, `GET /webhooks`                   | Can set aliases, headers, and event types.         |
+| Generic Unsubscribe Link                 | Yes           | `DEL /unsubscribe`                                  | Endpoint only; no built-in UI.                     |
+| **Optional**                             |               |                                                      |                                                     |
+| Manual Unsubscribing                     | Yes           | `DEL /unsubscribe`                                  | Can programmatically unsubscribe users.            |
+| Real-Time Email Insights (Opens, Bounces)| Partial       | No endpoints and not part of event status but representative is working on providing details, also saved in upaknee regardless       | Check with Upaknee for possible webhook support.   |
+| Modify Mailing Lists                     | Yes           | `PUT /lists/{list_id}`                              | Supports updates to list attributes.               |
+| Modify Email Templates                   | Partial       | Not detailed in the API documentation, Support via console confirmed, can also be done via creating a new list    | May depend on internal Upaknee template tools.     |
 
-- **Questions/Considerations:**
-  - Does the team have the SMTP credentials or need to procure them?
-  - How will unsubscribe functionality be handled?
-  - Is the lack of advanced analytics a deal-breaker?
+## Twilio
 
----
-
-### 2. Postmark
-- **Description:**
-  - A transactional email service with a strong focus on integrations and ease of use.
-  - Already integrated with existing Drupal endpoints, simplifying template deployment and token-based API usage.
-
-- **Strengths:**
-  - No need for SMTP credentials or server maintenance.
-  - Robust integration capabilities with APIs.
-  - Reliable deliverability with focus on transactional emails.
-  - Well-documented deployment for templates and endpoints.
-
-- **Weaknesses:**
-  - No native support for advanced subscription management or unsubscribe handling.
-  - Dependency on external systems for managing analytics and user data.
-
-- **Questions/Considerations:**
-  - What is the effort required to configure and deploy templates via existing integrations?
-  - Can the analytics gap be addressed through custom integrations?
-
----
-
-### 3. Subscription-Based Services (e.g., Upaknee, Twilio SendGrid)
-- **Description:**
-  - Platforms designed for bulk email delivery with built-in analytics, subscription management, and advanced features like unsubscribe interfaces.
-  - Store data and provide endpoints or webhooks to synchronize updates with external systems.
-
-- **Strengths:**
-  - Comprehensive analytics and reporting tools.
-  - Built-in unsubscribe workflows and interfaces.
-  - Scalable for large batches of emails.
-  - Shorter development time compared to Firestore and Postmark.
-
-- **Weaknesses:**
-  - Requires SMTP credentials for setup.
-  - Storing data outside Firestore creates potential issues with synchronicity and monitoring.
-  - Requires additional effort to integrate webhooks for updates back into Firestore.
-
-- **Questions/Considerations:**
-  - Are webhooks practical for a Cloud Function-based architecture?
-  - How challenging is the setup for bidirectional data sync between the subscription service and Firestore?
-  - What are the costs compared to Firestore and Postmark?
-
----
-
-## Comparison Table
-
-| Feature/Criteria           | Firestore Email Extension        | Postmark                    | Upaknee/Twilio              |
-|----------------------------|----------------------------------|-----------------------------|-----------------------------|
-| **SMTP Setup**             | Required                        | Not required                | Required                    |
-| **Real-Time Triggering**   | Supported                       | Requires API integration    | Supported                   |
-| **Batch Operations**       | Limited                         | Supported                   | Supported                   |
-| **Analytics**              | Minimal                         | Requires custom setup       | Comprehensive               |
-| **Subscription Management**| None                            | Requires external handling  | Built-in                    |
-| **Unsubscribe Interface**  | Manual implementation required  | Requires external handling  | Built-in                    |
-| **Scalability**            | Moderate                        | High                        | High                        |
-| **Synchronicity**          | Native                          | API dependent               | Requires webhooks           |
-| **Ease of Integration**    | Easy (Firestore-native)         | Medium (API integration)    | Medium (Webhook integration)|
-| **Development Time**       | Longer                          | Moderate                    | Shorter                     |
-| **Cost**                   | Firebase billing                | Subscription-based          | Subscription-based          |
-
----
-
-## Key Considerations
-
-1. **SMTP Server Credentials:**
-   - Firestore Email Trigger and Upaknee/Twilio require SMTP credentials. If these aren’t readily available, time and effort will be needed to configure or procure a service.
-
-2. **Integration Complexity:**
-   - Postmark benefits from existing Drupal integrations, reducing the need for complex configurations.
-   - Subscription services introduce additional complexities due to external data storage and the need for webhook-based synchronizations.
-
-3. **Analytics and Unsubscribe Management:**
-   - Firestore and Postmark are limited in this area.
-   - Subscription services excel but require careful handling of synchronicity and monitoring.
+| **Feature**                              | **Supported** | **Endpoint(s)**                                         | **Customization**                                    |
+|------------------------------------------|---------------|--------------------------------------------------------|-----------------------------------------------------|
+| **Required**                             |               |                                                        |                                                     |
+| Register Subscribers                     | Yes (via Subusers) | `POST /subusers`                                       | Add subusers with email, username, password, and IPs. |
+| Manage User Groups                       | Yes (via Subusers)            | `POST /marketing/lists`                              | Can be done in batches            |
+| Send Customized Batch Emails             | Yes           | `POST /mail/send`                                      | Supports dynamic template data for personalization. |
+| Real-Time Subscriber Updates             | Yes           | `POST /user/webhooks/event/settings`                | Can also set up an Event Webhook in the console.    |
+| Generic Unsubscribe Link                 | Yes           | `POST /mail/send`                                      | Add unsubscribe link using `asm` parameter.         |
+| **Optional**                             |               |                                                        |                                                     |
+| Manual Unsubscribing                     | Yes           | `DEL marketing/lists/{id}/contacts`            | Can remove contacts from a given list.            |
+| Real-Time Email Insights (Opens, Bounces)| Yes           | `PATCH /user/webhooks/event/settings`    `PATCH /tracking_settings/subscription  `          | Supports webhook configuration for engagement events.|
+| Modify Mailing Lists                     | Yes            | `PATCH /marketing/lists/{id}`   | Managed within Marketing Campaigns                         |
+| Modify Email Templates                   | Yes           | `PATCH /templates/{template_id}`                      | Update templates directly via the API.              |

@@ -1,3 +1,8 @@
+/* Import USWDS styles */
+@import '@trussworks/react-uswds/lib/uswds.css';
+@import '@trussworks/react-uswds/lib/index.css';
+
+/* Import Tailwind CSS (if applicable) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

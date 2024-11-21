@@ -1,58 +1,33 @@
-import React, { createContext, useContext, useState } from 'react';
-import { FormData } from '../utils/types';
+import React, { createContext, useContext, useState } from "react";
 
-type FormContextType = {
-  formData: FormData;
-  updateFormData: (step: keyof FormData, data: Partial<FormData[keyof FormData]>) => void;
+interface FormState {
   currentStep: number;
-  goToStep: (step: number) => void;
-};
+  data: Record<string, any>;
+  nextStep: () => void;
+  prevStep: () => void;
+  updateField: (id: string, value: any) => void;
+}
 
-const FormContext = createContext<FormContextType | undefined>(undefined);
-
-export const useFormContext = (): FormContextType => {
-  const context = useContext(FormContext);
-  if (!context) {
-    throw new Error('useFormContext must be used within a FormProvider');
-  }
-  return context;
-};
+const FormContext = createContext<FormState | undefined>(undefined);
 
 export const FormProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [formData, setFormData] = useState<FormData>({
-    step1: { zipCode: '' },
-    step2: { firstName: '', lastName: '' },
-    step3: { parentName: '', email: '' },
-    step4: {
-      gradeLevel: '',
-      firstLanguage: '',
-      preferredLanguage: '',
-      englishLearner: '',
-      race: '',
-      programs: [],
-      iep: '',
-    },
-  });
+  const [currentStep, setCurrentStep] = useState(0);
+  const [data, setData] = useState<Record<string, any>>({});
 
-  const [currentStep, setCurrentStep] = useState(1);
-
-  const updateFormData = (
-    step: keyof FormData,
-    data: Partial<FormData[keyof FormData]>
-  ): void => {
-    setFormData((prev) => ({
-      ...prev,
-      [step]: { ...prev[step], ...data },
-    }));
-  };
-
-  const goToStep = (step: number): void => {
-    setCurrentStep(step);
-  };
+  const nextStep = () => setCurrentStep((prev) => prev + 1);
+  const prevStep = () => setCurrentStep((prev) => prev - 1);
+  const updateField = (id: string, value: any) =>
+    setData((prev) => ({ ...prev, [id]: value }));
 
   return (
-    <FormContext.Provider value={{ formData, updateFormData, currentStep, goToStep }}>
+    <FormContext.Provider value={{ currentStep, data, nextStep, prevStep, updateField }}>
       {children}
     </FormContext.Provider>
   );
+};
+
+export const useFormContext = () => {
+  const context = useContext(FormContext);
+  if (!context) throw new Error("useFormContext must be used within a FormProvider");
+  return context;
 };
